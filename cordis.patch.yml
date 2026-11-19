@@ -1,4 +1,4 @@
 - insert:
     - id: tiiny-decide
-      name: tiiny-decide
+      name: dsh-tiiny-decide
       config: {}

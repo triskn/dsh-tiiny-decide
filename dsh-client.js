@@ -1,6 +1,6 @@
 // DSH Client half. All durable state and all inference belong to the Host.
 window.__ModuleLoader__.load({
-  id: 'tiiny-decide',
+  id: 'dsh-tiiny-decide',
   factory(require) {
     const React = require('react');
     const { createElement: h, useState, useEffect, useRef } = React;
@@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
     const BUILTINS = ['order-inbox', 'message-review'];
     const TABS = { workflows: 'workflows', connections: 'connections', runs: 'runs' };
     const EN = {
-      product: 'TiinyDecide', subtitle: 'Build and run reusable System One decisions in this workspace.',
+      product: 'TiinyDecide', subtitle: 'Run reusable System One decisions on Tiiny Pocket from this workspace.',
       workflows: 'Workflows', connections: 'Connections', runs: 'Runs', library: 'Workflow library',
       newWorkflow: 'New workflow', import: 'Import JSON', duplicate: 'Duplicate', exportWorkflow: 'Export workflow',
       builtIns: 'Built-in examples', savedWorkflows: 'Your workflows', noWorkflow: 'Select or create a workflow to get started.',

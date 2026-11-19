@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_CONNECTION, BUILTIN_WORKFLOWS } from '../examples/builtins.mjs';
-import { demoResponse } from '../examples/demo-upstream.mjs';
-import { normalizeConnection, normalizeWorkflow, workflowEnvelope, importWorkflow, makePayload, readState, analyzeResponse } from '../public/model.mjs';
+import { demoResponse } from './fixtures/system-one.mjs';
+import { normalizeConnection, normalizeWorkflow, workflowEnvelope, importWorkflow, makePayload, readState, analyzeResponse } from '../lib/model.mjs';
 
 const [orderInbox, messageReview] = BUILTIN_WORKFLOWS.map(normalizeWorkflow);
 

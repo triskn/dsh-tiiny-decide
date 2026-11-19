@@ -1,6 +1,8 @@
-import { homedir } from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
-import { createHandler, validateDataDirectory } from './server.mjs';
+import { realpath } from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHandler } from './lib/dsh-api.mjs';
 import { createAuth } from './lib/auth.mjs';
 import { assertObject, MAX_REQUEST_BYTES, openWorkbench } from './lib/workbench.mjs';
 
@@ -15,6 +17,27 @@ function dataPath(env = process.env) {
   return join(homedir(), '.tiiny-decide', 'dsh');
 }
 
+async function resolveExistingParents(path) {
+  try { return await realpath(path); }
+  catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return resolve(await resolveExistingParents(dirname(path)), basename(path));
+  }
+}
+
+async function validateDataDirectory(configuredDirectory) {
+  const dataDirectory = await resolveExistingParents(configuredDirectory);
+  const projectRoot = await realpath(dirname(fileURLToPath(import.meta.url)));
+  const projectLocation = relative(dataDirectory, projectRoot);
+  const containsProject = !isAbsolute(projectLocation) && projectLocation !== '..' && !projectLocation.startsWith(`..${sep}`);
+  const systemTemp = await realpath(tmpdir());
+  const home = await realpath(homedir());
+  if (containsProject || [home, systemTemp, '/tmp', '/private/tmp', '/var/tmp'].includes(dataDirectory)) {
+    throw new Error('Choose a dedicated TiinyDecide data directory.');
+  }
+  return dataDirectory;
+}
+
 function runView(run) {
   return {
     id: run.id, workflow: run.workflow.name, connection: run.connection.name,
@@ -26,7 +49,7 @@ function runView(run) {
 function tool(workbench) {
   return {
     name: 'tiiny_decide',
-    description: 'Use the local TiinyDecide workbench. Discover its saved workflow and connection IDs, manage workflow definitions, or run a decision and save it to Runs. Run and rerun send input to the stated saved connection; use them only with the user’s direction. Browser-only credentials are not available to this tool.',
+    description: 'Use the local TiinyDecide workbench. Discover its saved workflow and connection IDs, manage workflow definitions, or run a decision and save it to Runs. Run and rerun send input to the stated saved connection; use them only with the user’s direction. Use a DSH Host environment variable for authenticated agent calls.',
     deferLoading: true,
     timeoutMs: 610_000,
     parameters: {
@@ -74,7 +97,7 @@ function tool(workbench) {
 }
 
 export async function apply(ctx) {
-  const { dataDirectory } = await validateDataDirectory(dataPath());
+  const dataDirectory = await validateDataDirectory(dataPath());
   const auth = createAuth({
     cookieName: 'tiiny_decide_dsh_session', cookiePath: API_PATH,
     sessionHeader: 'x-tiiny-decide-session',

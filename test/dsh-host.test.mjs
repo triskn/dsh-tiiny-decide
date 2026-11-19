@@ -1,49 +1,26 @@
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
 import { mkdtemp, realpath, rm } from 'node:fs/promises';
-import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { test } from 'node:test';
-import { apply } from '../dsh-host.js';
-import { demoResponse } from '../examples/demo-upstream.mjs';
-
-async function listen(handler) {
-  const server = createServer(handler).listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  return server;
-}
-const origin = server => `http://127.0.0.1:${server.address().port}`;
-const close = server => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
+import { close, listen, origin, startDshHost } from './fixtures/dsh-host.mjs';
+import { demoResponse } from './fixtures/system-one.mjs';
 
 test('DSH Host binds a protected native route and shares state with the agent tool', async t => {
   const parent = await realpath(tmpdir());
   const data = await mkdtemp(join(parent, 'tiiny-decide-dsh-check-'));
   process.env.TIINY_DECIDE_DSH_DATA_DIR = data;
-  let route, registered;
-  const effects = [];
   t.after(async () => {
     delete process.env.TIINY_DECIDE_DSH_DATA_DIR;
-    for (const dispose of effects.reverse()) dispose();
     if (dirname(data) === parent && basename(data).startsWith('tiiny-decide-dsh-check-')) {
       await rm(data, { recursive: true, force: true });
     }
   });
-  await apply({
-    webServer: { getOrigin: () => 'http://127.0.0.1:9000', register: row => { route = row; return () => { route = undefined; }; } },
-    connection: { requestRejection: request => request.headers['x-test-peer'] === 'owner' ? undefined : 401 },
-    tools: { register: tool => { registered = tool; return () => { registered = undefined; }; } },
-    effect: callback => { effects.push(callback()); },
-  });
+  const { server: web, route, agent: registered } = await startDshHost();
+  t.after(() => close(web));
   assert.equal(route.path, '/plugins/tiiny-decide/api');
   assert.equal(route.kind, 'prefix');
   assert.equal(registered.name, 'tiiny_decide');
-  const web = await listen((request, response) => {
-    const path = new URL(request.url, 'http://localhost').pathname;
-    if (path === route.path || path.startsWith(`${route.path}/`)) return route.handler(request, response);
-    response.writeHead(404).end();
-  });
-  t.after(() => close(web));
   const actualKeys = [];
   const fixture = await listen(async (request, response) => {
     const chunks = [];

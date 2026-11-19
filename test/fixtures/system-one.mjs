@@ -1,8 +1,4 @@
-// Deliberately synthetic System One endpoint. This is not a model.
-import { createServer } from 'node:http';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
+// Synthetic System One responses for automated tests.
 const orderOptions = ['Action needed', 'Return or order issue', 'Just an update', 'Needs review'];
 
 export function demoResponse(payload) {
@@ -40,31 +36,4 @@ export function demoResponse(payload) {
     return [id, { choice, probabilities }];
   }));
   return { fixture: 'Synthetic demo — not live model inference', answers };
-}
-
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const port = Number(process.env.TIINY_DECIDE_DEMO_PORT ?? 4181);
-  const server = createServer(async (request, response) => {
-    response.setHeader('Content-Type', 'application/json');
-    if (request.method !== 'POST' || request.url !== '/v1/systemone') {
-      response.writeHead(404).end(JSON.stringify({ message: 'POST /v1/systemone only.' }));
-      return;
-    }
-    try {
-      let data = '';
-      for await (const chunk of request) {
-        data += chunk;
-        if (data.length > 1024 * 1024) throw new Error();
-      }
-      const payload = JSON.parse(data);
-      if (payload.model !== 'demo-system-one') {
-        response.writeHead(404).end(JSON.stringify({ message: 'Use the synthetic model ID demo-system-one.' }));
-        return;
-      }
-      response.end(JSON.stringify(demoResponse(payload)));
-    } catch {
-      response.writeHead(400).end(JSON.stringify({ message: 'Malformed demo request.' }));
-    }
-  });
-  server.listen(port, '127.0.0.1', () => console.log(`Synthetic fixture: http://127.0.0.1:${server.address().port}/v1/systemone (no model is running)`));
 }

@@ -3,6 +3,5 @@ node_modules/
 .qa/
 .env
 .env.*
-!.env.example
 *.log
 .DS_Store

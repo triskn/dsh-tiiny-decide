@@ -1,28 +1,53 @@
 {
-  "name": "tiiny-decide",
-  "version": "1.2.0",
+  "name": "dsh-tiiny-decide",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "A local workbench for reusable System One decisions, standalone or in DeepSeek Harness",
-  "engines": { "node": ">=22", "dsh": ">=0.2.2-rc.3 <0.3.0" },
+  "description": "Build reusable System One workflows in DeepSeek Harness and run them on Tiiny Pocket.",
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.2-rc.3 <0.3.0"
+  },
   "exports": {
     ".": "./dsh-host.js",
     "./client": "./dsh-client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./dsh-icon.svg"
   },
-  "files": ["dsh-host.js", "dsh-client.js", "dsh-icon.svg", "cordis.patch.yml", "locale/*.json", "server.mjs", "lib", "public", "examples", "test", ".env.example", ".gitignore"],
+  "files": [
+    "dsh-host.js",
+    "dsh-client.js",
+    "dsh-icon.svg",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "lib",
+    "examples"
+  ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-conversation", "@deepseek-ai/dsh-client-locale"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-locale"
+      ]
     }
   },
   "scripts": {
-    "start": "node server.mjs",
-    "test": "node --test test/*.test.mjs",
-    "demo:upstream": "node examples/demo-upstream.mjs"
-  }
+    "test": "node --test test/*.test.mjs"
+  },
+  "homepage": "https://github.com/triskn/dsh-tiiny-decide#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/triskn/dsh-tiiny-decide.git"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "tiiny-pocket",
+    "system-one"
+  ]
 }
