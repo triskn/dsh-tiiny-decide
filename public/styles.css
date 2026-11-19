@@ -189,8 +189,13 @@ textarea.state-text { min-height: 105px; background: #fdfefc; }
 .run-pending { margin-bottom: 14px; }
 .connection-form { display: grid; gap: 12px; }
 .connection-footer { margin-top: 2px; }
-.run-timeline { display: grid; gap: 7px; }
-.run-timeline .library-item { grid-template-columns: auto minmax(0, 1fr); }
+.run-history .library-list { grid-template-columns: minmax(0, 1fr); align-content: start; max-height: 52vh; overflow: auto; padding: 3px; }
+.run-history .library-item { grid-template-columns: auto minmax(0, 1fr); }
+.run-history .list-chevron { display: none; }
+.run-history .library-item strong, .run-history .library-item small { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+.run-history-meta { display: flex; flex-wrap: wrap; gap: 1px 6px; margin-top: 2px; }
+.run-history-meta time { font-variant-numeric: tabular-nums; }
+.run-history-failed { color: var(--danger); }
 .run-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; align-items: center; color: var(--quiet); font-size: 12px; padding: 10px 0; }
 .run-meta .icon { width: 14px; height: 14px; }
 .meta-item { display: inline-flex; align-items: center; align-self: start; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
@@ -262,6 +267,7 @@ textarea.state-text { min-height: 105px; background: #fdfefc; }
   .library-item { padding: 6px; gap: 5px; }
   .library-item .tile-icon { width: 25px; height: 25px; }
   .library-item small { font-size: 10px; }
+  .run-history .library-list { max-height: 180px; }
   .list-chevron { display: none; }
   .panel-head, .panel-body { padding: 13px 12px; }
   .runtime { margin: 10px 11px 0; padding: 8px; }

@@ -761,7 +761,7 @@ function renderConnections() {
 }
 
 function runSummary(run) {
-  return { id: run.id, createdAt: run.createdAt, workflowName: run.workflow?.name, connectionName: run.connection?.name, model: run.request?.model ?? run.connection?.model, ok: run.ok, elapsedMs: run.elapsedMs, upstreamStatus: run.upstreamStatus };
+  return { id: run.id, createdAt: run.createdAt, workflowName: run.workflow?.name, sampleName: run.sampleName, connectionName: run.connection?.name, model: run.request?.model ?? run.connection?.model, ok: run.ok, elapsedMs: run.elapsedMs, upstreamStatus: run.upstreamStatus };
 }
 function addRun(run) {
   ui.runCache.set(run.id, run);
@@ -825,12 +825,15 @@ async function exportRun(run) {
   try { saveFile(await api(`/runs/${urlId(run.id)}/export`), `${run.workflow?.name || 'workflow'}-${run.id}`); }
   catch (error) { toast(error.message, 'error'); }
 }
-function formattedDate(date) {
+const detailDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
+const historyDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'medium' });
+function formattedDate(date, formatter = detailDate) {
   if (!date) return 'Time unavailable';
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return String(date);
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+  return formatter.format(parsed);
 }
+const points = value => `${+(value * 100).toFixed(3)} pp`;
 function metric(value) {
   if (value === null || value === undefined) return 'Unavailable';
   if (typeof value === 'number' && value >= 0 && value <= 1) return `${+(value * 100).toFixed(2)}%`;
@@ -853,7 +856,7 @@ function resultCard(result) {
     question && p(question, 'result-question'), values,
     div('result-metrics', node('span', {}, node('strong', {}, 'Confidence: '), metric(result.confidence)),
       node('span', {}, node('strong', {}, 'Probabilities: '), result.probabilities == null ? 'Unavailable' : 'Available')),
-    result.ruleApplied && div('result-rule', notice(`Review rule applied: the probability gap (${metric(result.ruleApplied.gap)}) was below the threshold (${metric(result.ruleApplied.threshold)}).`, 'warning', 'rule')),
+    result.ruleApplied && div('result-rule', notice(`Review rule applied: the probability gap (${points(result.ruleApplied.gap)}) was below the threshold (${points(result.ruleApplied.threshold)}).`, 'warning', 'rule')),
     result.probabilities != null && div('result-rule', jsonDetails('Probabilities JSON', result.probabilities)));
 }
 function meta(symbol, value) { return node('span', { class: 'meta-item' }, icon(symbol), node('span', {}, value)); }
@@ -884,11 +887,24 @@ async function refreshRuns() {
   } catch (error) { toast(error.message, 'error'); }
   finally { ui.refreshingRuns = false; render(); }
 }
+function runHistoryTile(item) {
+  const subtitle = [
+    node('span', { class: 'run-history-meta' },
+      item.sampleName && node('span', {}, item.workflowName),
+      node('span', { class: item.ok ? null : 'run-history-failed' }, item.ok ? 'Succeeded' : 'Failed')),
+    node('span', { class: 'run-history-meta' },
+      node('time', { datetime: item.createdAt }, formattedDate(item.createdAt, historyDate)),
+      node('span', {}, elapsed(item.elapsedMs))),
+  ];
+  return tile(item.sampleName || item.workflowName || 'Workflow run', subtitle, item.ok ? 'check' : 'info',
+    ui.selectedRun === item.id, () => chooseRun(item.id));
+}
 function renderRuns() {
   const heading = pageHeading('Execution history', 'Runs', 'Review model answers, workflow results, and the configuration behind each run.',
     button(ui.refreshingRuns ? 'Refreshing…' : 'Refresh runs', refreshRuns, { symbol: 'runs', disabled: ui.refreshingRuns || ui.busyRun }));
   const pending = ui.busyRun && notice(`Running ${ui.pendingRun}… Waiting for the model endpoint.`, '', 'clock');
-  const list = library('Run history', [], ui.runs.length ? ui.runs.map(item => tile(item.workflowName ?? 'Workflow run', `${item.ok ? 'Succeeded' : 'Failed'} · ${elapsed(item.elapsedMs)} · ${formattedDate(item.createdAt)}`, item.ok ? 'check' : 'info', ui.selectedRun === item.id, () => chooseRun(item.id))) : empty('No runs yet', 'Start a workflow to create your first run.', 'runs'));
+  const list = library('Run history', [], ui.runs.length ? ui.runs.map(runHistoryTile) : empty('No runs yet', 'Start a workflow to create your first run.', 'runs'));
+  list.classList.add('run-history');
   const run = ui.runCache.get(ui.selectedRun);
   const detail = run ? renderRunDetail(run)
     : div('panel', ui.runError ? empty('Could not load this run', ui.runError, 'info', button('Try again', ensureRun, { symbol: 'runs' }))

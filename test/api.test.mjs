@@ -140,6 +140,7 @@ test('standalone API acceptance, migration, auth, errors, and persistence', asyn
   const runB = (await call('/api/run', { ...runInput, connectionId: connB.id })).data.run;
   assert.equal(runA.ok, true);
   assert.equal(runB.ok, true);
+  assert.equal(runA.sampleName, 'Conflicting notices');
   assert.deepEqual(runA.request.state, state);
   assert.deepEqual(runA.request.questions, runB.request.questions);
   assert.equal(runA.request.model, 'fixture-a');
@@ -164,6 +165,7 @@ test('standalone API acceptance, migration, auth, errors, and persistence', asyn
   assert.deepEqual(replay.connection, runA.connection);
   assert.deepEqual(replay.workflow, runA.workflow);
   assert.equal(replay.rerunOf, runA.id);
+  assert.equal(replay.sampleName, runA.sampleName);
 
   // Session keys are scoped to an opaque cookie and endpoint; raw echo is not persisted.
   const secretSave = await saveConnection({ auth: { mode: 'session' }, sessionKey: sessionToken });
@@ -218,7 +220,7 @@ test('standalone API acceptance, migration, auth, errors, and persistence', asyn
   if (process.platform !== 'win32') assert.equal((await stat(configPath)).mode & 0o777, 0o600);
   await stop(app);
   app = await startServer();
-  assert.ok((await call('/api/runs')).data.runs.find(run => run.id === runB.id));
+  assert.equal((await call('/api/runs')).data.runs.find(run => run.id === runB.id)?.sampleName, 'Conflicting notices');
   assert.ok((await call('/api/workflows')).data.workflows.find(workflow => workflow.id === imported.id));
   assert.equal((await call('/api/run', sessionRunInput, { Cookie: cookie })).data.run.error.code, 'missing_auth');
 });

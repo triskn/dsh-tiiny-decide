@@ -109,6 +109,12 @@ window.__ModuleLoader__.load({
       .td-item[aria-current=true]{border-color:var(--td-brand);background:var(--td-fill)}
       .td-item > span{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .td-list{display:flex;flex-direction:column;gap:5px;min-width:0;max-height:52vh;overflow:auto;padding:2px}
+      .td-list > .td-item{flex:none}
+      .td-run-item > span{overflow:visible;white-space:normal;overflow-wrap:anywhere}
+      .td-run-title{font-weight:650}
+      .td-run-meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 7px;font-size:11px;font-weight:400}
+      .td-run-meta time{font-variant-numeric:tabular-nums}
+      .td-run-failed{color:var(--td-danger)}
       .td-field{display:grid;gap:4px;min-width:0;color:var(--td-ink);font-size:12px;font-weight:560}
       .td-field .td-muted{font-weight:400}
       .td-field input:not([type=checkbox]),.td-field select,.td-field textarea{min-width:0;width:100%;border:1px solid var(--td-line2);background:var(--td-bg);border-radius:7px;padding:6px 8px;line-height:1.45;min-height:33px}
@@ -145,8 +151,10 @@ window.__ModuleLoader__.load({
     const pathId = id => encodeURIComponent(id);
     const snapshotDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
     const formatDate = value => Number.isFinite(Date.parse(value)) ? snapshotDate.format(new Date(value)) : '';
+    const historyDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'medium' });
     const duration = value => !Number.isFinite(value) ? null : value < 1000 ? `${Math.round(value)} ms` : `${(value / 1000).toFixed(2)} s`;
     const percent = value => typeof value === 'number' && value >= 0 && value <= 1 ? `${+(value * 100).toFixed(3)}%` : String(value);
+    const points = value => `${+(value * 100).toFixed(3)} pp`;
     const http = value => value == null ? null : `HTTP ${value}`;
     const errText = (error, t) => error?.message || t('hostError');
     const activeState = state => typeof state === 'string' ? { mode: 'text', text: state } : { mode: 'json', text: formatJson(state) };
@@ -181,6 +189,17 @@ window.__ModuleLoader__.load({
     }
     function Item({ title, desc, current, onClick }) {
       return h(Button, { className: 'td-item', 'aria-current': current ? 'true' : undefined, onClick }, h('span', null, title), desc && h('span', { className: 'td-muted' }, desc));
+    }
+    function RunItem({ item, t, current, onClick }) {
+      const date = new Date(item.createdAt);
+      return h(Button, { className: 'td-item td-run-item', 'aria-current': current ? 'true' : undefined, onClick },
+        h('span', { className: 'td-run-title' }, item.sampleName || item.workflowName),
+        h('span', { className: 'td-run-meta td-muted' },
+          item.sampleName && h('span', null, item.workflowName),
+          h('span', { className: item.ok ? undefined : 'td-run-failed' }, t(item.ok ? 'success' : 'failed'))),
+        h('span', { className: 'td-run-meta td-muted' },
+          Number.isFinite(date.getTime()) && h('time', { dateTime: item.createdAt }, historyDate.format(date)),
+          h('span', null, duration(item.elapsedMs))));
     }
     function Note({ children, tone, urgent = false }) {
       return h('div', { className: cls('td-note', tone && `td-${tone}`), role: urgent ? 'alert' : 'status' }, children);
@@ -483,7 +502,7 @@ window.__ModuleLoader__.load({
           h('div', null, h('h3', { className: 'td-label' }, t('rawAnswer')), h('strong', null, answer(item.modelAnswer))),
           h('div', null, h('h3', { className: 'td-label' }, t('result')), h('strong', null, answer(item.workflowResult)))),
         h('p', { className: 'td-muted' }, `${t('confidence')}: ${item.confidence == null ? t('unavailable') : percent(item.confidence)}`),
-        item.ruleApplied && h(Note, { tone: 'warn' }, `${t('gap')}: ${percent(item.ruleApplied.gap)} · ${t('threshold')}: ${percent(item.ruleApplied.threshold)}`),
+        item.ruleApplied && h(Note, { tone: 'warn' }, `${t('gap')}: ${points(item.ruleApplied.gap)} · ${t('threshold')}: ${points(item.ruleApplied.threshold)}`),
         probabilities.length ? h('div', { className: 'td-stack' }, h('h3', { className: 'td-label' }, t('probabilities')),
           h('dl', { className: 'td-probabilities' }, probabilities.map(([key, value]) => h('div', { key }, h('dt', null, key), h('dd', null, typeof value === 'number' ? percent(value) : answer(value)))))
         ) : h('p', { className: 'td-muted' }, `${t('probabilities')}: ${t('unavailable')}`));
@@ -492,8 +511,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'td-layout' },
         h('aside', { className: 'td-panel td-stack', 'aria-label': t('history') }, h('h2', { className: 'td-heading' }, t('history')),
           h('div', null, h(Button, { onClick: refresh, disabled: Boolean(pending) }, t('refresh'))),
-          records.length ? h('div', { className: 'td-list' }, records.map(item => h(Item, { key: item.id, title: item.workflowName,
-            desc: [t(item.ok ? 'success' : 'failed'), formatDate(item.createdAt), duration(item.elapsedMs)].filter(Boolean).join(' · '),
+          records.length ? h('div', { className: 'td-list' }, records.map(item => h(RunItem, { key: item.id, item, t,
             current: item.id === selected, onClick: () => select(item.id) }))) : h('p', { className: 'td-muted' }, t('noRuns'))),
         h('section', { className: 'td-panel td-stack', 'aria-label': t('runDetail') },
           detailLoading ? h(Note, null, t('runLoading')) : detailError ? h(Note, { urgent: true, tone: 'error' }, detailError) : !run ? h('p', { className: 'td-muted' }, t('noRuns')) : h(React.Fragment, null,
@@ -682,7 +700,7 @@ window.__ModuleLoader__.load({
       }
       function recordRun(run) {
         runCache.current.set(run.id, run); setRunDetail(run); setDetailError(''); setDetailLoading(false);
-        setRuns(items => [{ id: run.id, createdAt: run.createdAt, workflowName: run.workflow.name, connectionName: run.connection.name,
+        setRuns(items => [{ id: run.id, createdAt: run.createdAt, workflowName: run.workflow.name, sampleName: run.sampleName, connectionName: run.connection.name,
           model: run.request.model, ok: run.ok, elapsedMs: run.elapsedMs, upstreamStatus: run.upstreamStatus }, ...items.filter(item => item.id !== run.id)]);
         setSelectedRun(run.id);
       }
