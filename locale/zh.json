@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "TiinyDecide",
+    "description": "从 DSH 侧栏打开 System One 决策工作台，编辑和迁移工作流，连接 Tiiny Pocket 或兼容端点，并查看运行结果。真实推理需要端点上已有模型在运行。"
+  }
+}

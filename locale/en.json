@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "TiinyDecide",
+    "description": "Open TiinyDecide from the DSH sidebar to save System One workflows, connect a Tiiny Pocket or compatible endpoint, and inspect decision runs. A running model is required for real inference."
+  }
+}
